@@ -60,7 +60,7 @@ public class SearchService {
                 Airport hub2 = flightRepository.getAirport(legB.getDestination());
                 if (hub2 == null) continue;
 
-                Set<String> visited = Set.of(origin, legA.getDestination(), legB.getDestination());
+                Set<String> visited = new HashSet<>(List.of(origin, legA.getDestination(), legB.getDestination()));
 
                 for (Flight legC : flightRepository.getFlightsByOrigin(legB.getDestination())) {
                     if (visited.contains(legC.getDestination())) continue;
