@@ -68,7 +68,7 @@ function App() {
             </Typography>
             {airportLoadError && (
               <Alert severity="warning" sx={{ mb: 2 }}>
-                Couldn't load the airports list. You can still type IATA codes (e.g. JFK) directly.
+                Couldn't load the airports list.
               </Alert>
             )}
             <SearchForm onSearch={handleSearch} loading={loading} airports={airports} />

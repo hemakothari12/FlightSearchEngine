@@ -15,4 +15,5 @@ public class FlightResponse {
     private LocalDateTime arrivalTime;
     private double price;
     private String aircraft;
+    private long durationMinutes;
 }

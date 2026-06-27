@@ -51,22 +51,26 @@ function ResultsPanel({ itineraries }) {
 
   return (
     <Box>
-      {/* Sort + Filter bar */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 2, flexWrap: 'wrap' }}>
-        <SortControl value={sortBy} onChange={setSortBy} />
-        <Divider orientation="vertical" flexItem />
-        <StopsFilter
-          value={stopsFilter}
-          onChange={setStopsFilter}
-          availableStops={availableStops}
-        />
-      </Box>
+      {itineraries.length > 0 && (
+        <>
+          {/* Sort + Filter bar */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 3, mb: 2, flexWrap: 'wrap' }}>
+            <SortControl value={sortBy} onChange={setSortBy} />
+            <Divider orientation="vertical" flexItem />
+            <StopsFilter
+              value={stopsFilter}
+              onChange={setStopsFilter}
+              availableStops={availableStops}
+            />
+          </Box>
 
-      {/* Result count */}
-      <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
-        {displayed.length} itinerar{displayed.length === 1 ? 'y' : 'ies'} found
-        {stopsFilter !== 'all' ? ' (filtered)' : ', sorted by ' + (sortBy === 'price' ? 'price' : 'travel time')}
-      </Typography>
+          {/* Result count */}
+          <Typography variant="subtitle1" color="text.secondary" sx={{ mb: 2 }}>
+            {displayed.length} itinerar{displayed.length === 1 ? 'y' : 'ies'} found
+            {stopsFilter !== 'all' ? ' (filtered)' : ', sorted by ' + (sortBy === 'price' ? 'price' : 'travel time')}
+          </Typography>
+        </>
+      )}
 
       {renderCards(itineraries, displayed)}
     </Box>

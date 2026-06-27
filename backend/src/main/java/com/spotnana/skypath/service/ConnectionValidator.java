@@ -14,7 +14,7 @@ public class ConnectionValidator {
 
     private static final long MIN_DOMESTIC_MINUTES = 45;
     private static final long MIN_INTERNATIONAL_MINUTES = 90;
-    private static final long MAX_LAYOVER_MINUTES = 360;
+    static final long MAX_LAYOVER_MINUTES = 360;
 
     private final FlightRepository flightRepository;
 

@@ -44,6 +44,7 @@ function AirportAutocomplete({ label, value, onChange, airports, error, helperTe
         />
       )}
       isOptionEqualToValue={(option, val) => option.code === val.code}
+      slotProps={{ popupIndicator: { tabIndex: -1 } }}
     />
   );
 }

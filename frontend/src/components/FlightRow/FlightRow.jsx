@@ -5,6 +5,12 @@ function formatTime(dateTimeStr) {
   return dateTimeStr ? dateTimeStr.substring(11, 16) : '';
 }
 
+function formatDuration(minutes) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
+
 function FlightRow({ leg }) {
   const nextDay = leg.arrivalTime && leg.departureTime &&
     leg.arrivalTime.substring(0, 10) > leg.departureTime.substring(0, 10);
@@ -32,6 +38,11 @@ function FlightRow({ leg }) {
       <Typography variant="body2" fontWeight={600}>
         {leg.destination}
       </Typography>
+      {leg.durationMinutes > 0 && (
+        <Typography variant="body2" color="text.secondary">
+          · {formatDuration(leg.durationMinutes)}
+        </Typography>
+      )}
       <Typography variant="body2" color="text.secondary">
         · {leg.aircraft}
       </Typography>

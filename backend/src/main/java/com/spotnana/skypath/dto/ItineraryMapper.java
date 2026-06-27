@@ -1,13 +1,23 @@
 package com.spotnana.skypath.dto;
 
+import com.spotnana.skypath.model.Airport;
 import com.spotnana.skypath.model.Flight;
 import com.spotnana.skypath.model.Itinerary;
+import com.spotnana.skypath.repository.FlightRepository;
+import com.spotnana.skypath.util.TimeZoneUtil;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.List;
 
 @Component
 public class ItineraryMapper {
+
+    private final FlightRepository flightRepository;
+
+    public ItineraryMapper(FlightRepository flightRepository) {
+        this.flightRepository = flightRepository;
+    }
 
     public ItineraryResponse toResponse(Itinerary itinerary) {
         List<FlightResponse> legs = itinerary.getLegs().stream()
@@ -33,6 +43,11 @@ public class ItineraryMapper {
     }
 
     private FlightResponse toFlightResponse(Flight flight) {
+        Airport originAirport = flightRepository.getAirport(flight.getOrigin());
+        Airport destAirport = flightRepository.getAirport(flight.getDestination());
+        Instant dep = TimeZoneUtil.toUtcInstant(flight.getDepartureTime(), originAirport.getTimezone());
+        Instant arr = TimeZoneUtil.toUtcInstant(flight.getArrivalTime(), destAirport.getTimezone());
+
         return FlightResponse.builder()
                 .flightNumber(flight.getFlightNumber())
                 .airline(flight.getAirline())
@@ -42,6 +57,7 @@ public class ItineraryMapper {
                 .arrivalTime(flight.getArrivalTime())
                 .price(flight.getPrice())
                 .aircraft(flight.getAircraft())
+                .durationMinutes(TimeZoneUtil.minutesBetween(dep, arr))
                 .build();
     }
 }

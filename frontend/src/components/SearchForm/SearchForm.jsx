@@ -54,7 +54,7 @@ function SearchForm({ onSearch, loading, airports }) {
               : ''
           }
         />
-        <SearchDatePicker value={date} onChange={setDate} />
+        <SearchDatePicker value={date} onChange={setDate} submitted={submitted} />
         <Button
           type="submit"
           variant="contained"

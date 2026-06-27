@@ -15,8 +15,8 @@ import java.util.*;
 @Service
 public class SearchService {
 
-    // Maximum layover is 6 h; used to prune candidate flights before validator runs.
-    private static final long MAX_LAYOVER_MINUTES = 360;
+    // MAX_LAYOVER_MINUTES lives in ConnectionValidator (the authoritative policy class);
+    // referenced here only to prune candidates before the full validator runs.
 
     private final FlightRepository flightRepository;
     private final ConnectionValidator connectionValidator;
@@ -66,6 +66,10 @@ public class SearchService {
                     continue;
                 }
 
+                // Guard against circular routes at the legB level (e.g. A→B→A→D).
+                // The legC visited-set handles legC, but legB itself must not return to origin.
+                if (legB.getDestination().equals(origin)) continue;
+
                 Airport hub2 = flightRepository.getAirport(legB.getDestination());
                 if (hub2 == null) continue;
 
@@ -101,7 +105,7 @@ public class SearchService {
                 .filter(f -> {
                     Instant dep = TimeZoneUtil.toUtcInstant(f.getDepartureTime(), hub.getTimezone());
                     long gap = TimeZoneUtil.minutesBetween(afterUtc, dep);
-                    return gap >= 0 && gap <= MAX_LAYOVER_MINUTES;
+                    return gap >= 0 && gap <= ConnectionValidator.MAX_LAYOVER_MINUTES;
                 })
                 .toList();
     }
