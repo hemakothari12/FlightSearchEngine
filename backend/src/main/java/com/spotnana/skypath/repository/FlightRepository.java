@@ -7,7 +7,8 @@ import com.spotnana.skypath.model.Flight;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.core.io.ClassPathResource;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Component;
 
 import java.io.InputStream;
@@ -20,6 +21,9 @@ public class FlightRepository {
 
     private final ObjectMapper objectMapper;
 
+    @Value("${app.flights-path}")
+    private Resource flightsResource;
+
     private final Map<String, Airport> airportsByCode = new HashMap<>();
     private final Map<String, List<Flight>> flightsByOrigin = new HashMap<>();
 
@@ -29,7 +33,7 @@ public class FlightRepository {
 
     @PostConstruct
     public void load() throws Exception {
-        InputStream is = new ClassPathResource("flights.json").getInputStream();
+        InputStream is = flightsResource.getInputStream();
         JsonNode root = objectMapper.readTree(is);
 
         for (JsonNode node : root.get("airports")) {
