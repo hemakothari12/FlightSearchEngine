@@ -7,6 +7,7 @@ import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import FlightIcon from '@mui/icons-material/Flight';
 import SearchForm from './components/SearchForm/SearchForm';
+import ResultsPanel from './components/ResultsPanel/ResultsPanel';
 import { searchFlights } from './api/searchApi';
 
 const theme = createTheme({
@@ -66,6 +67,8 @@ function App() {
               {error}
             </Alert>
           )}
+
+          <ResultsPanel itineraries={itineraries} />
         </Container>
       </LocalizationProvider>
     </ThemeProvider>
