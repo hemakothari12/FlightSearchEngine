@@ -1,13 +1,19 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import SearchForm from '../../../components/SearchForm/SearchForm';
 
+const mockAirports = [
+  { code: 'JFK', name: 'John F. Kennedy International', city: 'New York', country: 'US', timezone: 'America/New_York' },
+  { code: 'LAX', name: 'Los Angeles International', city: 'Los Angeles', country: 'US', timezone: 'America/Los_Angeles' },
+  { code: 'ORD', name: "O'Hare International", city: 'Chicago', country: 'US', timezone: 'America/Chicago' },
+];
+
 function renderSearchForm(props = {}) {
   return render(
     <LocalizationProvider dateAdapter={AdapterDayjs}>
-      <SearchForm onSearch={jest.fn()} loading={false} {...props} />
+      <SearchForm onSearch={jest.fn()} loading={false} airports={mockAirports} {...props} />
     </LocalizationProvider>
   );
 }
@@ -26,24 +32,30 @@ describe('SearchForm', () => {
     expect(screen.getByRole('button', { name: /searching/i })).toBeDisabled();
   });
 
-  test('shows validation error when IATA code is less than 3 characters', async () => {
+  test('shows validation error when submitting without selecting an airport', async () => {
     renderSearchForm();
-    const originInput = screen.getByLabelText(/origin/i);
-    userEvent.type(originInput, 'JF');
-    userEvent.tab();
-    const error = await screen.findByText(/3-letter airport code/i);
-    expect(error).toBeInTheDocument();
+    userEvent.click(screen.getByRole('button', { name: /search/i }));
+    await screen.findByText(/select an origin airport/i);
   });
 
   test('calls onSearch with correct args on valid submit', async () => {
     const onSearch = jest.fn();
     renderSearchForm({ onSearch });
 
+    // Select origin
     userEvent.type(screen.getByLabelText(/origin/i), 'JFK');
+    await waitFor(() => screen.getByText(/New York, US/));
+    userEvent.click(screen.getByText(/New York, US/));
+
+    // Select destination
     userEvent.type(screen.getByLabelText(/destination/i), 'LAX');
+    await waitFor(() => screen.getByText(/Los Angeles, US/));
+    userEvent.click(screen.getByText(/Los Angeles, US/));
+
     userEvent.click(screen.getByRole('button', { name: /search/i }));
 
-    await screen.findByRole('button', { name: /search/i });
-    expect(onSearch).toHaveBeenCalledWith('JFK', 'LAX', '2024-03-15');
+    await waitFor(() => {
+      expect(onSearch).toHaveBeenCalledWith('JFK', 'LAX', '2024-03-15');
+    });
   });
 });

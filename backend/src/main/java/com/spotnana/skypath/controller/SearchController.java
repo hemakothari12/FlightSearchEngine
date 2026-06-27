@@ -1,7 +1,9 @@
 package com.spotnana.skypath.controller;
 
 import com.spotnana.skypath.exception.InvalidInputException;
+import com.spotnana.skypath.model.Airport;
 import com.spotnana.skypath.model.Itinerary;
+import com.spotnana.skypath.repository.FlightRepository;
 import com.spotnana.skypath.service.SearchService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
 import java.util.List;
 
 @RestController
@@ -19,9 +22,16 @@ public class SearchController {
     private static final java.util.regex.Pattern IATA = java.util.regex.Pattern.compile("^[A-Z]{3}$");
 
     private final SearchService searchService;
+    private final FlightRepository flightRepository;
 
-    public SearchController(SearchService searchService) {
+    public SearchController(SearchService searchService, FlightRepository flightRepository) {
         this.searchService = searchService;
+        this.flightRepository = flightRepository;
+    }
+
+    @GetMapping("/airports")
+    public Collection<Airport> airports() {
+        return flightRepository.getAllAirports();
     }
 
     @GetMapping("/search")

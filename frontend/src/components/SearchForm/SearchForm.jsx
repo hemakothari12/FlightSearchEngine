@@ -1,58 +1,58 @@
 import { useState } from 'react';
 import { Box, Button, Stack } from '@mui/material';
 import dayjs from 'dayjs';
-import IataInput from '../IataInput/IataInput';
+import AirportAutocomplete from '../AirportAutocomplete/AirportAutocomplete';
 import SearchDatePicker from '../SearchDatePicker/SearchDatePicker';
 
-const IATA_REGEX = /^[A-Z]{3}$/;
 const DEFAULT_DATE = dayjs('2024-03-15');
 
-function SearchForm({ onSearch, loading }) {
+function SearchForm({ onSearch, loading, airports }) {
   const [origin, setOrigin] = useState('');
   const [destination, setDestination] = useState('');
   const [date, setDate] = useState(DEFAULT_DATE);
-  const [touched, setTouched] = useState({ origin: false, destination: false });
+  const [submitted, setSubmitted] = useState(false);
 
-  const sameAirportError =
-    touched.origin && touched.destination &&
-    IATA_REGEX.test(origin) && IATA_REGEX.test(destination) &&
-    origin === destination
-      ? 'Origin and destination must be different'
-      : '';
+  const sameAirport = origin && destination && origin === destination;
 
-  const isValid =
-    IATA_REGEX.test(origin) &&
-    IATA_REGEX.test(destination) &&
-    origin !== destination &&
-    date && date.isValid();
+  const isValid = origin && destination && !sameAirport && date && date.isValid();
 
   function handleSubmit(e) {
     e.preventDefault();
-    setTouched({ origin: true, destination: true });
+    setSubmitted(true);
     if (!isValid) return;
     onSearch(origin, destination, date.format('YYYY-MM-DD'));
   }
 
   return (
     <Box component="form" onSubmit={handleSubmit} noValidate>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start">
-        <IataInput
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="flex-start" flexWrap="wrap">
+        <AirportAutocomplete
           label="Origin"
-          placeholder="JFK"
           value={origin}
           onChange={setOrigin}
-          onBlur={() => setTouched((t) => ({ ...t, origin: true }))}
-          touched={touched.origin}
-          error={sameAirportError}
+          airports={airports}
+          error={submitted && (!origin || sameAirport)}
+          helperText={
+            submitted && !origin
+              ? 'Select an origin airport'
+              : sameAirport
+              ? 'Origin and destination must be different'
+              : ''
+          }
         />
-        <IataInput
+        <AirportAutocomplete
           label="Destination"
-          placeholder="LAX"
           value={destination}
           onChange={setDestination}
-          onBlur={() => setTouched((t) => ({ ...t, destination: true }))}
-          touched={touched.destination}
-          error={sameAirportError}
+          airports={airports}
+          error={submitted && (!destination || sameAirport)}
+          helperText={
+            submitted && !destination
+              ? 'Select a destination airport'
+              : sameAirport
+              ? 'Origin and destination must be different'
+              : ''
+          }
         />
         <SearchDatePicker value={date} onChange={setDate} />
         <Button

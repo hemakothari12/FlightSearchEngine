@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   AppBar, Toolbar, Typography, Container, Box, LinearProgress,
   Alert, createTheme, ThemeProvider, CssBaseline,
@@ -8,7 +8,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import FlightIcon from '@mui/icons-material/Flight';
 import SearchForm from './components/SearchForm/SearchForm';
 import ResultsPanel from './components/ResultsPanel/ResultsPanel';
-import { searchFlights } from './api/searchApi';
+import { fetchAirports, searchFlights } from './api/searchApi';
 
 const theme = createTheme({
   palette: {
@@ -21,9 +21,14 @@ const theme = createTheme({
 });
 
 function App() {
+  const [airports, setAirports] = useState([]);
   const [itineraries, setItineraries] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+
+  useEffect(() => {
+    fetchAirports().then(setAirports).catch(() => {});
+  }, []);
 
   async function handleSearch(origin, destination, date) {
     setLoading(true);
@@ -57,7 +62,7 @@ function App() {
             <Typography variant="h5" fontWeight={600} gutterBottom>
               Find Flights
             </Typography>
-            <SearchForm onSearch={handleSearch} loading={loading} />
+            <SearchForm onSearch={handleSearch} loading={loading} airports={airports} />
           </Box>
 
           {loading && <LinearProgress sx={{ mb: 2 }} />}

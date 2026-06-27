@@ -7,6 +7,12 @@ export class ApiError extends Error {
   }
 }
 
+export async function fetchAirports() {
+  const response = await fetch(`${BASE_URL}/api/airports`);
+  if (!response.ok) throw new ApiError(response.status, 'Failed to load airports');
+  return response.json();
+}
+
 export async function searchFlights(origin, destination, date) {
   const params = new URLSearchParams({ origin, destination, date });
   const response = await fetch(`${BASE_URL}/api/search?${params}`);

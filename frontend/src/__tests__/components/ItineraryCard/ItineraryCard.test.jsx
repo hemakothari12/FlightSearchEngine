@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import ItineraryCard from '../../../components/ItineraryCard/ItineraryCard';
 
 const directItinerary = {
@@ -48,36 +49,65 @@ const oneStopItinerary = {
 };
 
 describe('ItineraryCard', () => {
-  test('renders flight number, airline, route and times for direct flight', () => {
+  test('renders departure and arrival times', () => {
     render(<ItineraryCard itinerary={directItinerary} />);
-    expect(screen.getByText('SP101')).toBeInTheDocument();
-    expect(screen.getByText('SkyPath Airways')).toBeInTheDocument();
-    expect(screen.getByText('JFK')).toBeInTheDocument();
-    expect(screen.getByText('LAX')).toBeInTheDocument();
-    expect(screen.getByText(/08:30/)).toBeInTheDocument();
-    expect(screen.getByText(/11:45/)).toBeInTheDocument();
-    expect(screen.getByText(/A320/)).toBeInTheDocument();
+    expect(screen.getByText(/08:30 — 11:45/)).toBeInTheDocument();
   });
 
-  test('renders total duration and price in header', () => {
+  test('renders airline name', () => {
+    render(<ItineraryCard itinerary={directItinerary} />);
+    expect(screen.getByText('SkyPath Airways')).toBeInTheDocument();
+  });
+
+  test('renders total duration and route', () => {
     render(<ItineraryCard itinerary={directItinerary} />);
     expect(screen.getByText('6h 15m')).toBeInTheDocument();
-    expect(screen.getByText('$299')).toBeInTheDocument();
+    expect(screen.getByText('JFK–LAX')).toBeInTheDocument();
   });
 
-  test('renders Direct chip for single-leg itinerary', () => {
+  test('renders Direct for single-leg itinerary', () => {
     render(<ItineraryCard itinerary={directItinerary} />);
     expect(screen.getByText('Direct')).toBeInTheDocument();
   });
 
-  test('renders layover badge between segments for 1-stop itinerary', () => {
-    render(<ItineraryCard itinerary={oneStopItinerary} />);
-    expect(screen.getByText(/Layover at ORD/)).toBeInTheDocument();
-    expect(screen.getByText(/1h 0m/)).toBeInTheDocument();
+  test('renders total price', () => {
+    render(<ItineraryCard itinerary={directItinerary} />);
+    expect(screen.getByText('$299')).toBeInTheDocument();
   });
 
-  test('renders 1 Stop chip for one-stop itinerary', () => {
+  test('renders 1 stop and layover info for one-stop itinerary', () => {
     render(<ItineraryCard itinerary={oneStopItinerary} />);
-    expect(screen.getByText('1 Stop')).toBeInTheDocument();
+    expect(screen.getByText('1 stop')).toBeInTheDocument();
+    expect(screen.getByText(/Layover at ORD: 1h 0m/)).toBeInTheDocument();
+  });
+
+  test('flight details are hidden by default and shown after expanding', () => {
+    render(<ItineraryCard itinerary={oneStopItinerary} />);
+    expect(screen.queryByText('SP201')).not.toBeInTheDocument();
+
+    userEvent.click(screen.getByRole('button', { name: /expand flight details/i }));
+    expect(screen.getByText('SP201')).toBeInTheDocument();
+    expect(screen.getByText('SP202')).toBeInTheDocument();
+  });
+
+  test('collapses flight details on second click', () => {
+    render(<ItineraryCard itinerary={oneStopItinerary} />);
+    userEvent.click(screen.getByRole('button', { name: /expand flight details/i }));
+    userEvent.click(screen.getByRole('button', { name: /collapse flight details/i }));
+    // verify toggle reverted — MUI Collapse CSS transitions don't run in jsdom
+    expect(screen.getByRole('button', { name: /expand flight details/i })).toBeInTheDocument();
+  });
+
+  test('renders +1 indicator when arrival is next day', () => {
+    const overnight = {
+      ...directItinerary,
+      legs: [{
+        ...directItinerary.legs[0],
+        departureTime: '2024-03-15T22:00:00',
+        arrivalTime: '2024-03-16T05:00:00',
+      }],
+    };
+    render(<ItineraryCard itinerary={overnight} />);
+    expect(screen.getByText('+1')).toBeInTheDocument();
   });
 });
