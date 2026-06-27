@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  AppBar, Toolbar, Typography, Container, Box, LinearProgress,
+  AppBar, Toolbar, Typography, Container, Box, CircularProgress,
   Alert, createTheme, ThemeProvider, CssBaseline,
 } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers';
@@ -65,10 +65,14 @@ function App() {
             <SearchForm onSearch={handleSearch} loading={loading} airports={airports} />
           </Box>
 
-          {loading && <LinearProgress sx={{ mb: 2 }} />}
+          {loading && (
+            <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
+              <CircularProgress size={48} />
+            </Box>
+          )}
 
           {error && (
-            <Alert severity="error" sx={{ mb: 2 }}>
+            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
               {error}
             </Alert>
           )}

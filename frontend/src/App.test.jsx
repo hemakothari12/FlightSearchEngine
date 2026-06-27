@@ -38,6 +38,71 @@ describe('App', () => {
     expect(screen.getByText(/unknown airport code: XXX/i)).toBeInTheDocument();
   });
 
+  test('shows empty state when API returns no results (TC#4 — same-origin rejected yields empty; TC#3 route with no flights)', async () => {
+    searchApi.searchFlights.mockResolvedValue([]);
+    render(<App />);
+
+    userEvent.type(screen.getByLabelText(/origin/i), 'JFK');
+    await waitFor(() => screen.getByText(/New York, US/));
+    userEvent.click(screen.getByText(/New York, US/));
+
+    userEvent.type(screen.getByLabelText(/destination/i), 'LAX');
+    await waitFor(() => screen.getByText(/Los Angeles, US/));
+    userEvent.click(screen.getByText(/Los Angeles, US/));
+
+    userEvent.click(screen.getByRole('button', { name: /search/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/no itineraries found/i)).toBeInTheDocument();
+    });
+  });
+
+  test('shows loading indicator while search is in progress', async () => {
+    let resolveSearch;
+    searchApi.searchFlights.mockImplementation(
+      () => new Promise((resolve) => { resolveSearch = resolve; })
+    );
+
+    render(<App />);
+
+    userEvent.type(screen.getByLabelText(/origin/i), 'JFK');
+    await waitFor(() => screen.getByText(/New York, US/));
+    userEvent.click(screen.getByText(/New York, US/));
+
+    userEvent.type(screen.getByLabelText(/destination/i), 'LAX');
+    await waitFor(() => screen.getByText(/Los Angeles, US/));
+    userEvent.click(screen.getByText(/Los Angeles, US/));
+
+    userEvent.click(screen.getByRole('button', { name: /search/i }));
+
+    expect(screen.getByRole('button', { name: /searching/i })).toBeDisabled();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+
+    resolveSearch([]);
+    await waitFor(() => {
+      expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    });
+  });
+
+  test('error alert can be dismissed', async () => {
+    searchApi.searchFlights.mockRejectedValue(new Error('Server error'));
+    render(<App />);
+
+    userEvent.type(screen.getByLabelText(/origin/i), 'JFK');
+    await waitFor(() => screen.getByText(/New York, US/));
+    userEvent.click(screen.getByText(/New York, US/));
+
+    userEvent.type(screen.getByLabelText(/destination/i), 'LAX');
+    await waitFor(() => screen.getByText(/Los Angeles, US/));
+    userEvent.click(screen.getByText(/Los Angeles, US/));
+
+    userEvent.click(screen.getByRole('button', { name: /search/i }));
+    await waitFor(() => expect(screen.getByRole('alert')).toBeInTheDocument());
+
+    userEvent.click(screen.getByRole('button', { name: /close/i }));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+  });
+
   test('shows results after successful search', async () => {
     searchApi.searchFlights.mockResolvedValue([
       {

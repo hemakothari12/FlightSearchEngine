@@ -15,6 +15,9 @@ import java.util.*;
 @Service
 public class SearchService {
 
+    // Maximum layover is 6 h; used to prune candidate flights before validator runs.
+    private static final long MAX_LAYOVER_MINUTES = 360;
+
     private final FlightRepository flightRepository;
     private final ConnectionValidator connectionValidator;
 
@@ -25,13 +28,14 @@ public class SearchService {
 
     public List<Itinerary> search(String origin, String destination, LocalDate date) {
         Airport originAirport = flightRepository.getAirport(origin);
-        Airport destAirport = flightRepository.getAirport(destination);
+        Airport destAirport   = flightRepository.getAirport(destination);
 
         if (originAirport == null) throw new AirportNotFoundException(origin);
-        if (destAirport == null) throw new AirportNotFoundException(destination);
+        if (destAirport   == null) throw new AirportNotFoundException(destination);
 
         List<Itinerary> results = new ArrayList<>();
 
+        // Leg A: must depart on the requested date (local airport time).
         List<Flight> leg1Candidates = flightRepository.getFlightsByOrigin(origin).stream()
                 .filter(f -> f.getDepartureTime().toLocalDate().equals(date))
                 .toList();
@@ -46,7 +50,13 @@ public class SearchService {
             Airport hub1 = flightRepository.getAirport(legA.getDestination());
             if (hub1 == null) continue;
 
-            for (Flight legB : flightRepository.getFlightsByOrigin(legA.getDestination())) {
+            // Legs B and C: pre-filter to the 6-hour window after the previous leg's UTC arrival.
+            // This eliminates flights from other days and most chronologically impossible pairs
+            // before the full ConnectionValidator runs, reducing inner-loop iterations.
+            Instant legAArrivalUtc = TimeZoneUtil.toUtcInstant(legA.getArrivalTime(), hub1.getTimezone());
+            List<Flight> legBCandidates = candidatesInWindow(legA.getDestination(), legAArrivalUtc, hub1);
+
+            for (Flight legB : legBCandidates) {
                 Optional<Long> layoverAB = connectionValidator.isValidConnection(legA, legB, hub1);
                 if (layoverAB.isEmpty()) continue;
 
@@ -56,13 +66,17 @@ public class SearchService {
                     continue;
                 }
 
-                // 2-stop
                 Airport hub2 = flightRepository.getAirport(legB.getDestination());
                 if (hub2 == null) continue;
 
+                Instant legBArrivalUtc = TimeZoneUtil.toUtcInstant(legB.getArrivalTime(), hub2.getTimezone());
+                List<Flight> legCCandidates = candidatesInWindow(legB.getDestination(), legBArrivalUtc, hub2);
+
+                // Visited set is built lazily — only when there are leg-C candidates to check.
+                if (legCCandidates.isEmpty()) continue;
                 Set<String> visited = new HashSet<>(List.of(origin, legA.getDestination(), legB.getDestination()));
 
-                for (Flight legC : flightRepository.getFlightsByOrigin(legB.getDestination())) {
+                for (Flight legC : legCCandidates) {
                     if (visited.contains(legC.getDestination())) continue;
                     if (!legC.getDestination().equals(destination)) continue;
 
@@ -80,18 +94,29 @@ public class SearchService {
         return results;
     }
 
+    /** Returns flights departing from {@code origin} within the 6-hour layover window after {@code afterUtc}. */
+    private List<Flight> candidatesInWindow(String origin, Instant afterUtc, Airport hub) {
+        return flightRepository.getFlightsByOrigin(origin).stream()
+                .filter(f -> {
+                    Instant dep = TimeZoneUtil.toUtcInstant(f.getDepartureTime(), hub.getTimezone());
+                    long gap = TimeZoneUtil.minutesBetween(afterUtc, dep);
+                    return gap >= 0 && gap <= MAX_LAYOVER_MINUTES;
+                })
+                .toList();
+    }
+
     private Itinerary buildItinerary(List<Flight> legs, List<Long> layovers) {
         Flight first = legs.get(0);
-        Flight last = legs.get(legs.size() - 1);
+        Flight last  = legs.get(legs.size() - 1);
 
         Airport originAirport = flightRepository.getAirport(first.getOrigin());
-        Airport destAirport = flightRepository.getAirport(last.getDestination());
+        Airport destAirport   = flightRepository.getAirport(last.getDestination());
 
         Instant departure = TimeZoneUtil.toUtcInstant(first.getDepartureTime(), originAirport.getTimezone());
-        Instant arrival = TimeZoneUtil.toUtcInstant(last.getArrivalTime(), destAirport.getTimezone());
+        Instant arrival   = TimeZoneUtil.toUtcInstant(last.getArrivalTime(),   destAirport.getTimezone());
 
         long totalDuration = TimeZoneUtil.minutesBetween(departure, arrival);
-        double totalPrice = legs.stream().mapToDouble(Flight::getPrice).sum();
+        double totalPrice  = legs.stream().mapToDouble(Flight::getPrice).sum();
 
         return new Itinerary(legs, layovers, totalDuration, totalPrice);
     }

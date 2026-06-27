@@ -1,8 +1,9 @@
 package com.spotnana.skypath.controller;
 
+import com.spotnana.skypath.dto.ItineraryMapper;
+import com.spotnana.skypath.dto.ItineraryResponse;
 import com.spotnana.skypath.exception.InvalidInputException;
 import com.spotnana.skypath.model.Airport;
-import com.spotnana.skypath.model.Itinerary;
 import com.spotnana.skypath.repository.FlightRepository;
 import com.spotnana.skypath.service.SearchService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -23,10 +24,12 @@ public class SearchController {
 
     private final SearchService searchService;
     private final FlightRepository flightRepository;
+    private final ItineraryMapper itineraryMapper;
 
-    public SearchController(SearchService searchService, FlightRepository flightRepository) {
+    public SearchController(SearchService searchService, FlightRepository flightRepository, ItineraryMapper itineraryMapper) {
         this.searchService = searchService;
         this.flightRepository = flightRepository;
+        this.itineraryMapper = itineraryMapper;
     }
 
     @GetMapping("/airports")
@@ -35,7 +38,7 @@ public class SearchController {
     }
 
     @GetMapping("/search")
-    public List<Itinerary> search(
+    public List<ItineraryResponse> search(
             @RequestParam String origin,
             @RequestParam String destination,
             @RequestParam String date) {
@@ -52,6 +55,6 @@ public class SearchController {
 
         LocalDate localDate = LocalDate.parse(date, DateTimeFormatter.ISO_LOCAL_DATE);
 
-        return searchService.search(origin, destination, localDate);
+        return itineraryMapper.toResponseList(searchService.search(origin, destination, localDate));
     }
 }

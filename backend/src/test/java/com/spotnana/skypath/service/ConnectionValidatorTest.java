@@ -82,10 +82,41 @@ class ConnectionValidatorTest {
     }
 
     @Test
+    void layover_exactly360min_isValid() {
+        // ORD is CDT (UTC-5): arrive 10:00 = 15:00 UTC, depart 16:00 = 21:00 UTC → exactly 360 min
+        when(flightRepository.getAirport("JFK")).thenReturn(jfk);
+        when(flightRepository.getAirport("LAX")).thenReturn(lax);
+
+        Flight inbound  = flight("JFK", "ORD", "2024-03-15T08:00", "2024-03-15T10:00");
+        Flight outbound = flight("ORD", "LAX", "2024-03-15T16:00", "2024-03-15T18:00");
+
+        assertThat(validator.isValidConnection(inbound, outbound, ord))
+                .isPresent().contains(360L);
+    }
+
+    @Test
+    void layover_361min_isRejected() {
+        // isDomestic() is never reached when layover > MAX — no airport stubs needed
+        Flight inbound  = flight("JFK", "ORD", "2024-03-15T08:00", "2024-03-15T10:00");
+        Flight outbound = flight("ORD", "LAX", "2024-03-15T16:01", "2024-03-15T18:01");
+
+        assertThat(validator.isValidConnection(inbound, outbound, ord)).isEmpty();
+    }
+
+    @Test
     void layoverOver6h_isRejected() {
         // isDomestic() is never reached when layover > MAX — no airport stubs needed
         Flight inbound = flight("JFK", "ORD", "2024-03-15T08:00", "2024-03-15T10:00");
-        Flight outbound = flight("ORD", "LAX", "2024-03-15T16:01", "2024-03-15T18:01");
+        Flight outbound = flight("ORD", "LAX", "2024-03-15T16:30", "2024-03-15T18:30");
+
+        assertThat(validator.isValidConnection(inbound, outbound, ord)).isEmpty();
+    }
+
+    @Test
+    void negativeLayover_isRejected() {
+        // Outbound departs before inbound arrives — layover is negative
+        Flight inbound  = flight("JFK", "ORD", "2024-03-15T08:00", "2024-03-15T10:00");
+        Flight outbound = flight("ORD", "LAX", "2024-03-15T09:00", "2024-03-15T11:00");
 
         assertThat(validator.isValidConnection(inbound, outbound, ord)).isEmpty();
     }
@@ -109,6 +140,32 @@ class ConnectionValidatorTest {
         Flight outbound = flight("LHR", "NRT", "2024-03-15T11:20", "2024-03-16T08:00");
 
         assertThat(validator.isValidConnection(inbound, outbound, lhr)).isEmpty();
+    }
+
+    @Test
+    void asymmetric_domesticArrivalInternationalDeparture_treatedAsInternational() {
+        // ORD→LAX (both US) arrives at LAX, then LAX→NRT (JP) departs — span crosses border → international
+        when(flightRepository.getAirport("ORD")).thenReturn(ord);
+        when(flightRepository.getAirport("NRT")).thenReturn(nrt);
+
+        // 80 min at LAX: passes domestic threshold (45) but fails international (90) → rejected
+        Flight inbound  = flight("ORD", "LAX", "2024-03-15T08:00", "2024-03-15T10:00");
+        Flight outbound = flight("LAX", "NRT", "2024-03-15T11:20", "2024-03-16T14:00");
+
+        assertThat(validator.isValidConnection(inbound, outbound, lax)).isEmpty();
+    }
+
+    @Test
+    void asymmetric_internationalArrivalDomesticDeparture_treatedAsInternational() {
+        // LHR→JFK (GB→US) arrives at JFK, then JFK→LAX (both US) departs — span crosses border → international
+        when(flightRepository.getAirport("LHR")).thenReturn(lhr);
+        when(flightRepository.getAirport("LAX")).thenReturn(lax);
+
+        // 80 min at JFK: passes domestic threshold (45) but fails international (90) → rejected
+        Flight inbound  = flight("LHR", "JFK", "2024-03-15T05:00", "2024-03-15T10:00");
+        Flight outbound = flight("JFK", "LAX", "2024-03-15T11:20", "2024-03-15T14:20");
+
+        assertThat(validator.isValidConnection(inbound, outbound, jfk)).isEmpty();
     }
 
     // helpers

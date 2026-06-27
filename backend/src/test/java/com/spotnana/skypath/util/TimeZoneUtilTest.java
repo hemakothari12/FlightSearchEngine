@@ -49,6 +49,30 @@ class TimeZoneUtilTest {
     }
 
     @Test
+    void toUtcInstant_tokyoJST() {
+        // JST is UTC+9 (no DST). 17:00 local → 08:00 UTC.
+        LocalDateTime local = LocalDateTime.of(2024, 3, 15, 17, 0, 0);
+        assertThat(TimeZoneUtil.toUtcInstant(local, "Asia/Tokyo"))
+                .isEqualTo(Instant.parse("2024-03-15T08:00:00Z"));
+    }
+
+    @Test
+    void toUtcInstant_dubaiGST() {
+        // Asia/Dubai is UTC+4 (no DST). 14:00 local → 10:00 UTC.
+        LocalDateTime local = LocalDateTime.of(2024, 3, 15, 14, 0, 0);
+        assertThat(TimeZoneUtil.toUtcInstant(local, "Asia/Dubai"))
+                .isEqualTo(Instant.parse("2024-03-15T10:00:00Z"));
+    }
+
+    @Test
+    void toUtcInstant_phoenixMST_noDST() {
+        // America/Phoenix is always UTC-7 (no DST). 11:00 local → 18:00 UTC.
+        LocalDateTime local = LocalDateTime.of(2024, 3, 15, 11, 0, 0);
+        assertThat(TimeZoneUtil.toUtcInstant(local, "America/Phoenix"))
+                .isEqualTo(Instant.parse("2024-03-15T18:00:00Z"));
+    }
+
+    @Test
     void minutesBetween_sydToLaxDateline() {
         // SYD departs 09:00 AEDT = 14 Mar 22:00 UTC, LAX arrives 06:00 PDT = 15 Mar 13:00 UTC → 900 min
         Instant sydDep = Instant.parse("2024-03-14T22:00:00Z");

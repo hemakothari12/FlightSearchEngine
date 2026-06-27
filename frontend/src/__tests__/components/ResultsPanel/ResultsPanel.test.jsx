@@ -28,6 +28,8 @@ const makeItinerary = (depTime, arrTime, duration, price, stops = 0) => ({
   layoverMinutes: stops > 0 ? [60] : [],
   totalDuration: duration,
   totalPrice: price,
+  stops,
+  totalLayover: stops > 0 ? 60 : 0,
 });
 
 const direct1   = makeItinerary('08:30', '11:45', 375, 299, 0);
@@ -83,6 +85,28 @@ describe('ResultsPanel', () => {
     userEvent.click(within(screen.getByTestId('stops-filter')).getByText('Direct'));
     expect(screen.getByText(/08:30 — 11:45/)).toBeInTheDocument();
     expect(screen.queryByText(/07:00 — 09:00/)).not.toBeInTheDocument();
+  });
+
+  test('equal duration: direct (0 stops) sorts before 1-stop', () => {
+    const sameDurationDirect  = makeItinerary('08:00', '13:00', 600, 299, 0);
+    const sameDurationOneStop = makeItinerary('06:00', '08:00', 600, 199, 1);
+    render(<ResultsPanel itineraries={[sameDurationOneStop, sameDurationDirect]} />);
+    const cards = screen.getAllByText(/\$/);
+    // First card should be direct ($299), second should be one-stop ($199)
+    expect(cards[0].textContent).toBe('$299');
+    expect(cards[1].textContent).toBe('$199');
+  });
+
+  test('sort resets to duration when new search results arrive', () => {
+    const { rerender } = render(<ResultsPanel itineraries={[direct1, direct2]} />);
+    userEvent.click(screen.getByRole('button', { name: /price/i }));
+    expect(screen.getByRole('button', { name: /price/i })).toHaveAttribute('aria-pressed', 'true');
+
+    // Simulate new search arriving
+    rerender(<ResultsPanel itineraries={[direct1]} />);
+
+    expect(screen.getByRole('button', { name: /duration/i })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /price/i })).toHaveAttribute('aria-pressed', 'false');
   });
 
   test('filtering by 1 Stop shows only 1-stop itineraries', () => {

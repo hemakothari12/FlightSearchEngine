@@ -46,7 +46,10 @@ public class ConnectionValidator {
         return Optional.of(layover);
     }
 
-    // domestic only when inbound origin, hub, and outbound destination are all in the same country
+    // Domestic means the full three-airport span (inbound-origin → hub → outbound-dest) lies
+    // within one country. Asymmetric cases — arriving domestically but departing internationally,
+    // or vice versa — are classified as international because one equality check fails.
+    // Example: JFK→ORD→LAX = domestic (all US); ORD→LAX→NRT = international (US≠JP).
     private boolean isDomestic(Flight inbound, Airport hub, Flight outbound) {
         Airport inboundOrigin = flightRepository.getAirport(inbound.getOrigin());
         Airport outboundDest = flightRepository.getAirport(outbound.getDestination());

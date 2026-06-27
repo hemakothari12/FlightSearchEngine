@@ -20,7 +20,7 @@ function formatDuration(minutes) {
 }
 
 function ItineraryCard({ itinerary }) {
-  const { legs, layoverMinutes, totalDuration, totalPrice } = itinerary;
+  const { legs, layoverMinutes, totalDuration, totalPrice, stops } = itinerary;
   const [expanded, setExpanded] = useState(false);
 
   const firstLeg = legs[0];
@@ -32,8 +32,6 @@ function ItineraryCard({ itinerary }) {
   const depDate = firstLeg.departureTime.substring(0, 10);
   const arrDate = lastLeg.arrivalTime.substring(0, 10);
   const nextDay = arrDate > depDate;
-
-  const stops = legs.length - 1;
   const airlines = [...new Set(legs.map((l) => l.airline))].join(', ');
 
   return (
