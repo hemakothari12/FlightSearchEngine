@@ -24,9 +24,10 @@ public class Flight {
     @Setter(AccessLevel.NONE)
     private double price;
 
-    // handles both numeric (299.00) and string ("289.00") price values in the dataset
+    // handles numeric (299.00), string ("289.00"), and null price values in the dataset
     @JsonProperty("price")
     public void setPrice(Object price) {
+        if (price == null) return;
         if (price instanceof Number) {
             this.price = ((Number) price).doubleValue();
         } else {

@@ -8,6 +8,7 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import FlightIcon from '@mui/icons-material/Flight';
 import SearchForm from './components/SearchForm/SearchForm';
 import ResultsPanel from './components/ResultsPanel/ResultsPanel';
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary';
 import { fetchAirports, searchFlights } from './api/searchApi';
 
 const theme = createTheme({
@@ -22,12 +23,15 @@ const theme = createTheme({
 
 function App() {
   const [airports, setAirports] = useState([]);
+  const [airportLoadError, setAirportLoadError] = useState(false);
   const [itineraries, setItineraries] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchAirports().then(setAirports).catch(() => {});
+    fetchAirports()
+      .then((data) => setAirports([...data].sort((a, b) => a.code.localeCompare(b.code))))
+      .catch(() => setAirportLoadError(true));
   }, []);
 
   async function handleSearch(origin, destination, date) {
@@ -62,6 +66,11 @@ function App() {
             <Typography variant="h5" fontWeight={600} gutterBottom>
               Find Flights
             </Typography>
+            {airportLoadError && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                Couldn't load the airports list. You can still type IATA codes (e.g. JFK) directly.
+              </Alert>
+            )}
             <SearchForm onSearch={handleSearch} loading={loading} airports={airports} />
           </Box>
 
@@ -77,7 +86,9 @@ function App() {
             </Alert>
           )}
 
-          <ResultsPanel itineraries={itineraries} />
+          <ErrorBoundary>
+            <ResultsPanel itineraries={itineraries} />
+          </ErrorBoundary>
         </Container>
       </LocalizationProvider>
     </ThemeProvider>

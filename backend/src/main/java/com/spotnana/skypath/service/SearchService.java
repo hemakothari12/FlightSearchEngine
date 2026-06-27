@@ -90,6 +90,7 @@ public class SearchService {
             }
         }
 
+        results.removeIf(Objects::isNull);
         results.sort(Comparator.comparingLong(Itinerary::getTotalDuration));
         return results;
     }
@@ -111,6 +112,10 @@ public class SearchService {
 
         Airport originAirport = flightRepository.getAirport(first.getOrigin());
         Airport destAirport   = flightRepository.getAirport(last.getDestination());
+
+        // Defensive: airports should always resolve (validated at search() entry), but
+        // guard against corrupt dataset rows with an unrecognised airport code.
+        if (originAirport == null || destAirport == null) return null;
 
         Instant departure = TimeZoneUtil.toUtcInstant(first.getDepartureTime(), originAirport.getTimezone());
         Instant arrival   = TimeZoneUtil.toUtcInstant(last.getArrivalTime(),   destAirport.getTimezone());

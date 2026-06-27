@@ -15,6 +15,16 @@ describe('App', () => {
     searchApi.fetchAirports.mockResolvedValue(mockAirports);
   });
 
+  test('shows warning alert when airports fail to load', async () => {
+    searchApi.fetchAirports.mockRejectedValueOnce(new Error('Network error'));
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+    expect(screen.getByText(/couldn't load the airports list/i)).toBeInTheDocument();
+  });
+
   test('shows error alert when API returns an error', async () => {
     searchApi.searchFlights.mockRejectedValue(new Error('Unknown airport code: XXX'));
 

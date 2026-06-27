@@ -18,7 +18,9 @@ export async function searchFlights(origin, destination, date) {
   const response = await fetch(`${BASE_URL}/api/search?${params}`);
 
   if (!response.ok) {
-    const body = await response.json().catch(() => ({}));
+    const body = await response.json().catch(() => {
+      throw new ApiError(response.status, 'An unexpected error occurred');
+    });
     throw new ApiError(response.status, body.message || 'An unexpected error occurred');
   }
 

@@ -317,6 +317,20 @@ class SearchServiceTest {
         assertThat(results.get(0).getLayoverMinutes()).containsExactly(90L);
     }
 
+    @Test
+    void buildItinerary_nullAirportForEndpoint_isStrippedFromResults() {
+        // Force getAirport("LAX") to return lax on the first call (destination validation in search())
+        // then null on the second call (inside buildItinerary), simulating a corrupt dataset row
+        // where a flight's endpoint code isn't in the airports map.
+        Flight direct = flight("JFK", "LAX", "2024-03-15T14:00", "2024-03-15T17:15");
+        when(flightRepository.getAirport("JFK")).thenReturn(jfk);
+        when(flightRepository.getAirport("LAX")).thenReturn(lax, (Airport) null);
+        when(flightRepository.getFlightsByOrigin("JFK")).thenReturn(List.of(direct));
+
+        // buildItinerary returns null; results.removeIf(Objects::isNull) strips it — no NPE
+        assertThat(searchService.search("JFK", "LAX", DATE)).isEmpty();
+    }
+
     // helpers
 
     private Airport airport(String code, String country, String timezone) {

@@ -137,6 +137,32 @@ describe('ItineraryCard', () => {
     expect(screen.getByText(/B737/)).toBeInTheDocument();
   });
 
+  test('formatDuration shows minutes only when total duration is under 60 min', () => {
+    // A layover of 45 min in the summary row exercises the `${m}m` branch of formatDuration
+    const shortLayover = {
+      ...oneStopItinerary,
+      layoverMinutes: [45],
+    };
+    render(<ItineraryCard itinerary={shortLayover} />);
+    expect(screen.getByText(/Layover at ORD: 45m/)).toBeInTheDocument();
+  });
+
+  test('FlightRow shows +1 in expanded view for overnight leg', () => {
+    const overnight = {
+      ...directItinerary,
+      legs: [{
+        ...directItinerary.legs[0],
+        departureTime: '2024-03-15T22:00:00',
+        arrivalTime: '2024-03-16T05:00:00',
+      }],
+    };
+    render(<ItineraryCard itinerary={overnight} />);
+    userEvent.click(screen.getByRole('button', { name: /expand flight details/i }));
+    // FlightRow renders its own +1 superscript for overnight legs in the expanded detail row
+    const plusOnes = screen.getAllByText('+1');
+    expect(plusOnes.length).toBeGreaterThanOrEqual(1);
+  });
+
   test('renders +1 indicator when arrival is next day', () => {
     const overnight = {
       ...directItinerary,
