@@ -6,6 +6,9 @@ function formatTime(dateTimeStr) {
 }
 
 function FlightRow({ leg }) {
+  const nextDay = leg.arrivalTime && leg.departureTime &&
+    leg.arrivalTime.substring(0, 10) > leg.departureTime.substring(0, 10);
+
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1, flexWrap: 'wrap' }}>
       <AirplaneTicketIcon fontSize="small" color="action" />
@@ -18,8 +21,13 @@ function FlightRow({ leg }) {
       <Typography variant="body2" fontWeight={600}>
         {leg.origin}
       </Typography>
-      <Typography variant="body2" color="text.secondary">
+      <Typography variant="body2" color="text.secondary" component="span">
         {formatTime(leg.departureTime)} → {formatTime(leg.arrivalTime)}
+        {nextDay && (
+          <Typography component="sup" sx={{ fontSize: 10, ml: 0.3, verticalAlign: 'super' }}>
+            +1
+          </Typography>
+        )}
       </Typography>
       <Typography variant="body2" fontWeight={600}>
         {leg.destination}
