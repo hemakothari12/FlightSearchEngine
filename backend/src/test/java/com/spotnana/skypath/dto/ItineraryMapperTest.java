@@ -1,17 +1,37 @@
 package com.spotnana.skypath.dto;
 
+import com.spotnana.skypath.model.Airport;
 import com.spotnana.skypath.model.Flight;
 import com.spotnana.skypath.model.Itinerary;
+import com.spotnana.skypath.repository.FlightRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 
+@ExtendWith(MockitoExtension.class)
 class ItineraryMapperTest {
 
-    private final ItineraryMapper mapper = new ItineraryMapper();
+    @Mock
+    private FlightRepository flightRepository;
+
+    private ItineraryMapper mapper;
+
+    @BeforeEach
+    void setUp() {
+        Airport airport = new Airport();
+        airport.setTimezone("America/New_York");
+        lenient().when(flightRepository.getAirport(anyString())).thenReturn(airport);
+        mapper = new ItineraryMapper(flightRepository);
+    }
 
     @Test
     void toResponse_directFlight_mapsAllFieldsCorrectly() {
