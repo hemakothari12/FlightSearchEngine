@@ -11,14 +11,13 @@ function SearchDatePicker({ value, onChange, submitted }) {
 
   return (
     <DatePicker
-      label="Date *"
+      label="Date"
       value={value}
       onChange={onChange}
       onError={(error) => setDateError(error)}
       format="YYYY-MM-DD"
       slotProps={{
         textField: {
-          required: true,
           error: hasError,
           helperText: hasError ? 'Enter a valid date (YYYY-MM-DD)' : ' ',
           sx: { width: 200 },

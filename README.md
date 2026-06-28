@@ -63,7 +63,7 @@ The browser opens automatically at [http://localhost:3000](http://localhost:3000
 | Layer | Choice |
 |---|---|
 | Backend | Java 17, Spring Boot 3, Maven |
-| Frontend | React 18, Material UI, Create React App |
+| Frontend | React 18, Material UI |
 | Infrastructure | Docker, docker-compose, Nginx |
 | Backend tests | JUnit 5, Mockito, Spring MockMvc |
 | Frontend tests | React Testing Library, Jest |
@@ -102,6 +102,41 @@ This handles dateline crossings (e.g. SYD→LAX, where local arrival appears "be
 ### Why the date filter applies only to Leg 1
 
 The search filters Leg 1 departures to the user-requested date in local airport time. Legs 2 and 3 are validated purely by UTC chronology and layover window. This is intentional: a long layover or a timezone shift can push a connecting flight to the next calendar day, which is valid behavior the spec supports.
+
+### Backend package structure
+
+Each package has a single, named responsibility:
+
+| Package | Class(es) | Role |
+|---|---|---|
+| `controller/` | `SearchController` | HTTP boundary — validates request params, delegates to service, returns response |
+| `service/` | `SearchService` | Graph traversal and itinerary assembly |
+| `service/` | `ConnectionValidator` | Layover rule enforcement (min/max, domestic vs international) |
+| `repository/` | `FlightRepository` | Loads `flights.json` at startup; exposes O(1) airport lookup and per-origin flight lists |
+| `model/` | `Airport`, `Flight`, `Itinerary` | Plain domain objects — no business logic |
+| `dto/` | `ItineraryResponse`, `FlightResponse`, `ItineraryMapper` | Translates internal models to the API response shape |
+| `exception/` | `AirportNotFoundException`, `InvalidInputException`, `GlobalExceptionHandler` | Consistent error JSON for all failure modes |
+| `util/` | `TimeZoneUtil` | Pure UTC conversion and duration math |
+| `config/` | `CorsConfig` | CORS policy allowing the frontend origin |
+
+### Backend design principles
+
+**Single responsibility**
+Each class has exactly one job. `SearchController` handles HTTP, `SearchService` runs the graph search, `ConnectionValidator` enforces layover rules, `FlightRepository` owns data loading, `ItineraryMapper` owns serialisation shape, `TimeZoneUtil` does UTC math. No class does two of these jobs.
+
+**Open/closed**
+Business rules (minimum layover times, maximum layover, domestic classification) are centralised in `ConnectionValidator`. Adding a new rule — for example a minimum connection time per airline — means extending `ConnectionValidator`, not editing `SearchService`.
+
+**Dependency inversion**
+All Spring-managed classes depend on abstractions injected via constructor, not on concrete implementations resolved inline. Every class is independently testable with a mock or stub without a Spring context.
+
+**Separation of concerns: DTO layer**
+Internal model classes (`Itinerary`, `Flight`) are decoupled from the API response shape. `ItineraryMapper` translates between them, so internal refactors don't break the API contract and the response shape can evolve without touching domain logic.
+
+**Fail-fast validation**
+Input validation (IATA format, same-origin check, date parse) happens at the controller boundary before any service call. Unknown airport codes throw `AirportNotFoundException` at the top of `SearchService.search()`. Invalid inputs never reach the algorithm.
+
+---
 
 ### Frontend component design
 
@@ -179,10 +214,6 @@ In-memory is the right call for a static 260-flight dataset. The tradeoff is tha
 
 BFS collecting all valid paths is simple and correct for depth ≤ 3. Dijkstra would find the single shortest path faster, but we need the full result set for the user to browse, sort, and filter. With the 6-hour window pre-filter, the inner loops rarely iterate over more than a handful of candidates per hub.
 
-### Single-day search vs date range
-
-The search accepts one departure date. Supporting a ±3-day flexible window (like Google Flights price calendar) would multiply the search calls and require aggregating and deduplicating results across days — a meaningful complexity jump that is out of scope for a static dataset prototype.
-
 ### UTC-at-query-time vs pre-computed UTC fields
 
 UTC instants are computed on each search call using `ZoneId.of()` — not free. For this dataset size the overhead is negligible. The natural optimisation for a larger dataset is to precompute `departureUtc` / `arrivalUtc` at load time and cache them on the `Flight` object, eliminating repeated timezone lookups from the hot loop.
@@ -192,11 +223,9 @@ UTC instants are computed on each search call using `ZoneId.of()` — not free. 
 ## What I Would Improve With More Time
 
 - **Deeper sort criteria.** The current sort offers two options — duration (with stops as a tiebreaker) and price. A more complete implementation would support multi-level sorting within each option: for example, price sort could fall back to duration then stops; duration sort could fall back to price then airline preference. A production system would also expose user-configurable sort priorities.
-- **Seat availability and inventory.** Integrating a real inventory API would add a capacity check before including a flight in results.
 - **Result caching.** Identical queries (same origin, destination, date) could be served from a Redis cache with a short TTL, avoiding repeated graph traversal on popular routes.
 - **Pagination.** For larger datasets, returning an unbounded list is impractical. Cursor-based pagination on the API and virtual scrolling on the frontend would be needed.
 - **Round-trip / multi-city search.** The current model handles one-way itineraries only.
-- **Flexible date search.** A ±N-day calendar view showing the cheapest fare per day would require running searches across a date range and aggregating results.
 - **Visual flight path.** A horizontal timeline (origin ●———●———● destination) in the itinerary summary row would communicate route structure more intuitively than text descriptions.
 - **Accessibility audit.** ARIA labels on sort/filter controls and screen-reader announcements for result updates could be strengthened.
 - **Mobile layout.** The form and itinerary cards are functional on small screens but not optimised for mobile viewports.
