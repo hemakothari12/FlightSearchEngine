@@ -228,4 +228,4 @@ UTC instants are computed on each search call using `ZoneId.of()` — not free. 
 - **Round-trip / multi-city search.** The current model handles one-way itineraries only.
 - **Visual flight path.** A horizontal timeline (origin ●———●———● destination) in the itinerary summary row would communicate route structure more intuitively than text descriptions.
 - **Accessibility audit.** ARIA labels on sort/filter controls and screen-reader announcements for result updates could be strengthened.
-- **Mobile layout.** The form and itinerary cards are functional on small screens but not optimised for mobile viewports.
+- **Mobile layout.** The form and itinerary cards are functional on small screens but not optimised for mobile viewports. A responsive redesign with stacked cards and a compact search form would improve the experience on phones.
